@@ -125,33 +125,45 @@ Independent = Independent.sample(frac = 1, random_state = seed)
 batch_sizes = args.bs
 print('batch_sizes = %d'% batch_sizes)
 #---data batchsize
+print('Generating training data batches...')
 drug_loader_train, cline_loader_train, glo_loader_train, _, _, label_train = BatchGenerate(CV, \
                    drug_subfeat, cline_subfeat, drug_glofeat, cline_glofeat, drug_compo_elem, bs = batch_sizes)
+print('Generating test data batches...')
 drug_loader_test, cline_loader_test, glo_loader_test, dc_test, cc_test, label_test = BatchGenerate(Independent, \
                    drug_subfeat, cline_subfeat, drug_glofeat, cline_glofeat, drug_compo_elem, bs = batch_sizes)
 
  #%%
+print('Initializing model...')
 model = SubCDR(SubEncoder(in_drug = drug_dim, in_cline = 8, out = 82), GraphEncoder(in_channels = 32, out_channels = 16), \
                GloEncoder(in_channels = glo_dim, out_channels = 128), Decoder(in_channels = 160)).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr, weight_decay = 1e-4)
+print(f'Learning rate: {args.lr}')
 myloss = torch.nn.BCELoss()
 
 #---main
+print('Starting training...')
 Result=[]
 start = time.time()
 final_AUC = 0;final_AUPR = 0
 for epoch in range(args.ep):
-    print('epoch = %d'% (epoch+1))
+    print('='*50)
+    print(f'Epoch {epoch+1}/{args.ep}')
     model.train()
     train(drug_loader_train, cline_loader_train, glo_loader_train, label_train)
     AUC, AUPR, Y_true, Y_pred = test(drug_loader_test, cline_loader_test, glo_loader_test, label_test)
-    print('test auc: ' + str(round(AUC, 4)) + '  test aupr: ' + str(round(AUPR, 4)))
+    print('Test metrics:')
+    print(f'AUC: {round(AUC, 4)}  AUPR: {round(AUPR, 4)}')
     if (AUC > final_AUC):
         final_AUC = AUC;final_AUPR = AUPR
+        print('New best model found! Saving checkpoint...')
         torch.save(model.state_dict(), args.o + "classification_model.pkl")
 
-print('Final_AUC: ' + str(round(final_AUC, 4)) + '  Final_AUPR: ' + str(round(final_AUPR, 4)))
+print('='*50)
+print('Training completed!')
+print(f'Best metrics - AUC: {round(final_AUC, 4)}  AUPR: {round(final_AUPR, 4)}')
+print(f'Total training time: {time.time() - start:.2f} seconds')
 Result.append([final_AUC, final_AUPR])
 #save_prediction_results
 odir =  args.o + "classification.txt"
+print(f'Saving results to {odir}')
 np.savetxt(odir, np.array(Result))
