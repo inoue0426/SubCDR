@@ -65,8 +65,8 @@ def classification_metric(yt, yp):
     aupr = -np.trapz(precision, recall)
     auc = roc_auc_score(yt, yp)
     # ---f1,acc,recall, specificity, precision
-    real_score = np.mat(yt)
-    predict_score = np.mat(yp)
+    real_score = np.asmatrix(yt)
+    predict_score = np.asmatrix(yp)
     sorted_predict_score = np.array(
         sorted(list(set(np.array(predict_score).flatten())))
     )
@@ -74,7 +74,7 @@ def classification_metric(yt, yp):
     thresholds = sorted_predict_score[
         np.int32(sorted_predict_score_num * np.arange(1, 1000) / 1000)
     ]
-    thresholds = np.mat(thresholds)
+    thresholds = np.asmatrix(thresholds)
     thresholds_num = thresholds.shape[1]
     predict_score_matrix = np.tile(predict_score, (thresholds_num, 1))
     negative_index = np.where(predict_score_matrix < thresholds.T)

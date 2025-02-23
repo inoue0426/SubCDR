@@ -166,7 +166,7 @@ class SubCDR(nn.Module):
     def forward(self, drug_sub, cline_sub, embed_glo):
         interaction_maps = self.SubEncoder(drug_sub, cline_sub)
         graphs = self.interaction_graph(interaction_maps)
-        batch_graphs = graphs.__iter__().next()
+        batch_graphs = next(iter(graphs))
         embed_sub = self.GraphEncoder(
             batch_graphs.x,
             batch_graphs.edge_index,
