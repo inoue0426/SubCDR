@@ -1,30 +1,31 @@
-import numpy as np
-from rdkit import Chem
-from rdkit.Chem import MACCSkeys
-from rdkit.Chem import BRICS
-from rdkit import DataStructs
-from rdkit.Chem import AllChem
 import re
+
+import numpy as np
+from rdkit import Chem, DataStructs
+from rdkit.Chem import BRICS, AllChem, MACCSkeys
+
 
 def BRICS_GetMolFrags(smi):
     mol = Chem.MolFromSmiles(smi)
     smarts = Chem.MolToSmiles(mol)
     mol = Chem.MolFromSmiles(smarts)
-    #---mol Decompose    
+    # ---mol Decompose
     sub_smi = BRICS.BRICSDecompose(mol)
-    sub_smi = [re.sub(r'\[\d+\*\]','*',item) for item in sub_smi]
+    sub_smi = [re.sub(r"\[\d+\*\]", "*", item) for item in sub_smi]
     return sub_smi, smarts
+
 
 # def BRICS_GetMolFrags(smi):
 #     mol = Chem.MolFromSmiles(smi)
 #     smarts = Chem.MolToSmiles(mol)
 #     mol = Chem.MolFromSmiles(smarts)
-#     #---mol Decompose    
+#     #---mol Decompose
 #     mm = BRICS.BreakBRICSBonds(mol)
 #     frags = Chem.GetMolFrags(mm, asMols = True)
 #     sub_smi = [Chem.MolToSmiles(x, True) for x in frags]
 #     sub_smi = [re.sub(r'\[\d+\*\]','*',item) for item in sub_smi]
 #     return sub_smi, smarts
+
 
 def FRL_GetMolFrags(smi):
     mol_t = Chem.MolFromSmiles(smi)
@@ -34,13 +35,13 @@ def FRL_GetMolFrags(smi):
     for i in mol_t.GetBonds():
         i.SetIntProp("bond_idx", i.GetIdx())
     ring_info = mol_t.GetRingInfo()
-    bondrings = ring_info.BondRings() 
+    bondrings = ring_info.BondRings()
     if len(bondrings) == 0:
         bondring_list = []
-    elif len(bondrings) == 1:  
+    elif len(bondrings) == 1:
         bondring_list = list(bondrings[0])
     else:
-        bondring_list = list(bondrings[0]+bondrings[1])
+        bondring_list = list(bondrings[0] + bondrings[1])
     all_bonds_idx = [bond.GetIdx() for bond in mol_t.GetBonds()]
     none_ring_bonds_list = []
     for i in all_bonds_idx:
@@ -51,17 +52,22 @@ def FRL_GetMolFrags(smi):
         bgn_atom_idx = mol_t.GetBondWithIdx(bond_idx).GetBeginAtomIdx()
         ebd_atom_idx = mol_t.GetBondWithIdx(bond_idx).GetEndAtomIdx()
         if mol_t.GetBondWithIdx(bond_idx).GetBondTypeAsDouble() == 1.0:
-            if mol_t.GetAtomWithIdx(bgn_atom_idx).IsInRing()+mol_t.GetAtomWithIdx(ebd_atom_idx).IsInRing() == 1:
+            if (
+                mol_t.GetAtomWithIdx(bgn_atom_idx).IsInRing()
+                + mol_t.GetAtomWithIdx(ebd_atom_idx).IsInRing()
+                == 1
+            ):
                 t_bond = mol_t.GetBondWithIdx(bond_idx)
                 t_bond_idx = t_bond.GetIntProp("bond_idx")
                 cut_bonds.append(t_bond_idx)
-    if len(cut_bonds) == 0 :
+    if len(cut_bonds) == 0:
         return smi, smarts
     else:
         res = Chem.FragmentOnBonds(mol_t, cut_bonds)
         frags = Chem.GetMolFrags(res, asMols=True)
         sub_smi = [Chem.MolToSmiles(x, True) for x in frags]
     return sub_smi, smarts
+
 
 class FP:
     """
@@ -84,7 +90,10 @@ class FP:
     def __len__(self):
         return len(self.fp)
 
-def get_cfps(mol, radius=2, nBits=512, useFeatures=False, counts=False, dtype=np.float32):
+
+def get_cfps(
+    mol, radius=2, nBits=512, useFeatures=False, counts=False, dtype=np.float32
+):
     """Calculates circural (Morgan) fingerprint.
     Parameters
     ----------
@@ -107,18 +116,24 @@ def get_cfps(mol, radius=2, nBits=512, useFeatures=False, counts=False, dtype=np
 
     if counts is True:
         info = {}
-        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=nBits, useFeatures=useFeatures,
-                                                   bitInfo=info)
+        fp = AllChem.GetMorganFingerprintAsBitVect(
+            mol, radius, nBits=nBits, useFeatures=useFeatures, bitInfo=info
+        )
         DataStructs.ConvertToNumpyArray(fp, arr)
         arr = np.array([len(info[x]) if x in info else 0 for x in range(nBits)], dtype)
     else:
         DataStructs.ConvertToNumpyArray(
-            AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=nBits, useFeatures=useFeatures), arr)
+            AllChem.GetMorganFingerprintAsBitVect(
+                mol, radius, nBits=nBits, useFeatures=useFeatures
+            ),
+            arr,
+        )
     return FP(arr, range(nBits))
+
 
 def get_Morgan(smiles):
     m = Chem.MolFromSmiles(smiles)
     Finger = get_cfps(m)
     fp = Finger.fp
     fp = fp.tolist()
-    return fp 
+    return fp

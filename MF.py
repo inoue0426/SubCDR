@@ -1,33 +1,38 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from scipy.optimize import nnls
-from sklearn.utils.extmath import randomized_svd, svd_flip
-from scipy.sparse.linalg import svds
 import copy
 import logging
 
-#-----SVD
+import numpy as np
+from scipy.optimize import nnls
+from scipy.sparse.linalg import svds
+from sklearn.utils.extmath import randomized_svd, svd_flip
+
+
+# -----SVD
 def _my_svd(M, k, algorithm):
-    if algorithm == 'randomized':
+    if algorithm == "randomized":
         (U, S, V) = randomized_svd(
-            M, n_components=min(k, M.shape[1]-1), n_oversamples=50)
-    elif algorithm == 'arpack':
-        (U, S, V) = svds(M, k=min(k, min(M.shape)-1))
+            M, n_components=min(k, M.shape[1] - 1), n_oversamples=50
+        )
+    elif algorithm == "arpack":
+        (U, S, V) = svds(M, k=min(k, min(M.shape) - 1))
         S = S[::-1]
         U, V = svd_flip(U[:, ::-1], V[::-1])
     else:
         raise ValueError("unknown algorithm")
     return (U, S, V)
 
+
 def svt_solve(
-        A, 
-        mask, 
-        tau=None, 
-        delta=None, 
-        epsilon=1e-2,
-        rel_improvement=-0.01,
-        max_iterations=1000,
-        algorithm='arpack'):
+    A,
+    mask,
+    tau=None,
+    delta=None,
+    epsilon=1e-2,
+    rel_improvement=-0.01,
+    max_iterations=1000,
+    algorithm="arpack",
+):
     """
     Solve using iterative singular value thresholding.
     Parameters:
@@ -45,8 +50,8 @@ def svt_solve(
     max_iterations: int
         hard limit on maximum number of iterations
     algorithm: str, 'arpack' or 'randomized' (default='arpack')
-        SVD solver to use. Either 'arpack' for the ARPACK wrapper in 
-        SciPy (scipy.sparse.linalg.svds), or 'randomized' for the 
+        SVD solver to use. Either 'arpack' for the ARPACK wrapper in
+        SciPy (scipy.sparse.linalg.svds), or 'randomized' for the
         randomized algorithm due to Halko (2009).
 
     Returns:
@@ -55,7 +60,7 @@ def svt_solve(
         completed matrix
     """
     logger = logging.getLogger(__name__)
-    if algorithm not in ['randomized', 'arpack']:
+    if algorithm not in ["randomized", "arpack"]:
         raise ValueError("unknown algorithm %r" % algorithm)
     Y = np.zeros_like(A)
 
